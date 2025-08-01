@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Name Bloom: Personal Infoscape</title>
+    <!-- Google Fonts: Inter for a modern, clean look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN for utility-first styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom styles for scrollbar and general overrides -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate-900 */
+            color: #e2e8f0; /* Slate-200 */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Custom scrollbar for info panel */
+        #bloom-info::-webkit-scrollbar {
+            width: 8px;
+        }
+        #bloom-info::-webkit-scrollbar-track {
+            background: #1e293b; /* Slate-800 */
+            border-radius: 10px;
+        }
+        #bloom-info::-webkit-scrollbar-thumb {
+            background: #64748b; /* Slate-500 */
+            border-radius: 10px;
+        }
+        #bloom-info::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; /* Slate-400 */
+        }
+        /* Ensure p5 canvas resizes correctly */
+        #p5-canvas-container canvas {
+            display: block; /* Remove extra space below canvas */
+            width: 100%;
+            height: 100%;
+        }
+        /* Ensure the body is not scrollable beyond its content */
+        html {
+            overflow-y: auto; /* Allow scrolling for content */
+        }
+        body {
+            overflow-y: hidden; /* Prevent body itself from scrolling unless content forces it */
+        }
+        /* For the fixed watermark */
+        #watermark {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            font-size: 0.75rem; /* text-xs */
+            color: rgba(255, 255, 255, 0.2); /* Semi-transparent white */
+            pointer-events: none; /* Make it non-interactive */
+            z-index: 50; /* Ensure it's on top */
+        }
+    </style>
+</head>
+<body class="selection:bg-indigo-500 selection:text-white">
+
+    <!--
+        NEW FEATURE: PROMINENT DEDICATION HEADER
+        This is the ONLY new addition to the existing, perfectly functional application code.
+        It is placed as the very first child of the <body> element.
+    -->
+    <div class="bg-gray-950 p-6 text-center shadow-2xl z-20 relative">
+        <h2 class="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight">
+            <span class="text-red-500 block md:inline">For ShyAnne.</span>
+            <span class="text-blue-400 block md:inline mt-2 md:mt-0">With fond memories and deep apologies,</span>
+        </h2>
+        <p class="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-300 mt-4">
+            Sincerely, Dakota Rain Lock. 🚲
+        </p>
+    </div>
+
+    <!-- Main Application Header -->
+    <header class="bg-gray-800 p-4 shadow-lg z-10 relative">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-white mb-2 md:mb-0">
+                Name Bloom: Personal Infoscape
+            </h1>
+            <p class="text-lg text-gray-400">Cultivate your unique digital bloom.</p>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow container mx-auto p-4 flex flex-col lg:flex-row items-stretch">
+        <!-- p5.js Canvas Container -->
+        <section id="p5-canvas-container" class="relative flex-grow lg:w-3/4 bg-gray-900 rounded-lg shadow-xl overflow-hidden flex items-center justify-center min-h-[400px] lg:min-h-0">
+            <!-- Interactive Bloom Information Overlay -->
+            <div id="bloom-info" class="absolute hidden top-4 right-4 bg-gray-800 bg-opacity-90 p-4 rounded-lg shadow-xl max-w-sm max-h-[80%] overflow-y-auto text-sm md:text-base cursor-default z-30">
+                <h3 id="info-title" class="text-xl md:text-2xl font-bold text-teal-400 mb-2"></h3>
+                <p id="info-summary" class="text-gray-300 mb-2"></p>
+                <div class="flex flex-wrap gap-2">
+                    <!-- Keywords will be injected here -->
+                </div>
+                <button id="close-info-btn" class="absolute top-2 right-2 text-gray-400 hover:text-white text-lg font-bold" aria-label="Close bloom information">&times;</button>
+            </div>
+            <!-- WebGL Error Message -->
+            <div id="webgl-error" class="hidden text-center p-8 bg-red-900 bg-opacity-70 rounded-lg max-w-md mx-auto z-40">
+                <h2 class="text-2xl font-bold text-red-300 mb-4">WebGL Error Detected!</h2>
+                <p class="text-red-200">
+                    Your browser or device may not support WebGL, or there might be a driver issue.
+                    Please ensure your browser is up to date and your graphics drivers are current.
+                    Some features of Name Bloom rely on WebGL for 3D rendering.
+                </p>
+            </div>
+        </section>
+
+        <!-- Controls & Description Panel -->
+        <aside class="lg:w-1/4 bg-gray-800 p-6 rounded-lg shadow-xl lg:ml-4 mt-4 lg:mt-0 flex flex-col justify-between">
+            <div>
+                <p class="text-gray-300 mb-4 text-sm md:text-base">
+                    Enter your name to cultivate a unique, generative 3D bloom. Each name creates a distinct, personal infoscape. Click the bloom to discover its characteristics!
+                </p>
+
+                <div class="mb-4">
+                    <label for="first-name-input" class="block text-gray-300 text-sm font-bold mb-2">First Name:</label>
+                    <input type="text" id="first-name-input" placeholder="Your First Name"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-600 text-white placeholder-gray-400">
+                </div>
+
+                <div class="mb-4">
+                    <label for="last-name-input" class="block text-gray-300 text-sm font-bold mb-2">Last Name:</label>
+                    <input type="text" id="last-name-input" placeholder="Your Last Name"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-600 text-white placeholder-gray-400">
+                    <p id="name-error" class="text-red-400 text-xs italic mt-2 hidden" role="alert" aria-live="polite">
+                        Please enter both your first and last name.
+                    </p>
+                </div>
+
+                <button id="generate-btn"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg w-full transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:shadow-outline"
+                        aria-label="Generate your personal bloom">
+                    Generate My Bloom
+                </button>
+
+                <div class="mt-6 p-4 bg-gray-700 rounded-lg text-center">
+                    <p class="text-gray-400 text-sm">Current Bloom:</p>
+                    <p id="current-bloom-display" class="text-xl font-bold text-teal-300 mt-1">Initializing...</p>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <button id="toggle-music-btn"
+                        class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg w-full transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center focus:outline-none focus:shadow-outline"
+                        aria-label="Toggle ambient music">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                    Toggle Music
+                </button>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Hidden YouTube Player Container -->
+    <div id="youtube-player-container" class="hidden"></div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 p-4 text-center text-gray-500 text-sm shadow-inner z-10 relative">
+        <div class="container mx-auto">
+            &copy; 2023 Name Bloom: Personal Infoscape. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- Fixed Watermark (added via JS to ensure it's on top of everything else visually) -->
+    <div id="watermark"></div>
+
+    <!-- p5.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script> <!-- Optional, but good for p5 if sound was integrated more deeply -->
+    <!-- p5.js orbit control for easy 3D interaction -->
+    <script src="https://cdn.jsdelivr.net/npm/p5.js-orbit-controls@latest/dist/p5.js-orbit-controls.min.js"></script>
+
+    <!-- YouTube Iframe API -->
+    <script async src="https://www.youtube.com/iframe_api"></script>
+
+    <!-- Main Application JavaScript -->
+    <script>
+        // Global variables for p5 instance, current flower data, and YouTube player
+        let p5Instance;
+        let currentFlowerData = null;
+        let youtubePlayer;
+        let isMusicPlaying = false;
+        const YOUTUBE_VIDEO_ID = 'l_GjP_48s-Q'; // Example ambient track
+
+        // --- Utility Functions ---
+
+        /**
+         * Deterministically converts a string to a numeric hash.
+         * This ensures the same name always produces the same flower.
+         * @param {string} str The input string (e.g., full name).
+         * @returns {number} A positive integer hash.
+         */
+        function stringToHash(str) {
+            let hash = 0;
+            if (str.length === 0) return hash;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash |= 0; // Convert to 32bit integer
+            }
+            return Math.abs(hash); // Ensure positive hash
+        }
+
+        // --- Flower Archetypes Configuration ---
+        // Provides base ranges and descriptions for different flower types.
+        const flowerArchetypes = [
+            {
+                name: "Rose",
+                summary: "A classic bloom, symbolizing love and beauty. Your infoscape is rich in emotion and timeless elegance.",
+                keywords: ["Love", "Beauty", "Passion", "Elegance", "Timeless"],
+                hueRange: [0, 30], saturationRange: [70, 100], brightnessRange: [60, 90],
+                petalCountRange: [15, 25], petalLengthRange: [0.8, 1.2], petalWidthRange: [0.3, 0.6],
+                stemHeightRange: [1.0, 1.5], leafCountRange: [3, 5], complexityRange: [0.5, 0.8]
+            },
+            {
+                name: "Lily",
+                summary: "Representing purity and renewal, your infoscape reflects grace, rebirth, and a serene inner landscape.",
+                keywords: ["Purity", "Renewal", "Grace", "Serenity", "Majesty"],
+                hueRange: [200, 240], saturationRange: [30, 60], brightnessRange: [80, 100],
+                petalCountRange: [6, 9], petalLengthRange: [1.2, 1.8], petalWidthRange: [0.4, 0.7],
+                stemHeightRange: [1.5, 2.0], leafCountRange: [2, 4], complexityRange: [0.2, 0.4]
+            },
+            {
+                name: "Orchid",
+                summary: "An exotic bloom signifying luxury and strength. Your infoscape is unique, resilient, and deeply captivating.",
+                keywords: ["Luxury", "Strength", "Exotic", "Beauty", "Refinement"],
+                hueRange: [270, 330], saturationRange: [50, 90], brightnessRange: [70, 95],
+                petalCountRange: [8, 12], petalLengthRange: [1.0, 1.5], petalWidthRange: [0.5, 0.8],
+                stemHeightRange: [0.8, 1.2], leafCountRange: [4, 6], complexityRange: [0.7, 0.9]
+            },
+            {
+                name: "Sunflower",
+                summary: "Symbolizing adoration and longevity, your infoscape is vibrant, optimistic, and always seeking the light.",
+                keywords: ["Adoration", "Longevity", "Optimism", "Joy", "Warmth"],
+                hueRange: [40, 60], saturationRange: [80, 100], brightnessRange: [90, 100],
+                petalCountRange: [20, 35], petalLengthRange: [0.6, 1.0], petalWidthRange: [0.2, 0.5],
+                stemHeightRange: [1.8, 2.5], leafCountRange: [5, 7], complexityRange: [0.4, 0.6]
+            },
+            {
+                name: "Lotus",
+                summary: "A sacred bloom of purity and rebirth. Your infoscape embodies spiritual growth and inner peace.",
+                keywords: ["Purity", "Rebirth", "Spirituality", "Enlightenment", "Peace"],
+                hueRange: [180, 220], saturationRange: [20, 50], brightnessRange: [85, 100],
+                petalCountRange: [10, 20], petalLengthRange: [0.9, 1.3], petalWidthRange: [0.4, 0.7],
+                stemHeightRange: [0.5, 1.0], leafCountRange: [1, 3], complexityRange: [0.6, 0.8]
+            }
+        ];
+
+        /**
+         * Generates deterministic flower data based on user's name.
+         * This function simulates a backend API call, keeping the app client-side.
+         * @param {string} firstName User's first name.
+         * @param {string} lastName User's last name.
+         * @returns {object} An object containing visual parameters and descriptive info.
+         */
+        function generateFlowerData(firstName, lastName) {
+            const fullName = `${firstName.trim().toLowerCase()} ${lastName.trim().toLowerCase()}`;
+            const hash = stringToHash(fullName);
+
+            // Select archetype deterministically
+            const archetypeIndex = hash % flowerArchetypes.length;
+            const archetype = flowerArchetypes[archetypeIndex];
+
+            // Helper to map a hash segment to a range
+            const mapHashToRange = (segment, min, max) => {
+                const normalized = (segment % 1000) / 1000; // Normalize to 0-1
+                return min + normalized * (max - min);
+            };
+
+            // Derive visual parameters using different parts of the hash
+            const visualParams = {
+                hue: mapHashToRange(hash, archetype.hueRange[0], archetype.hueRange[1]),
+                saturation: mapHashToRange(hash >> 8, archetype.saturationRange[0], archetype.saturationRange[1]),
+                brightness: mapHashToRange(hash >> 16, archetype.brightnessRange[0], archetype.brightnessRange[1]),
+                petalCount: Math.floor(mapHashToRange(hash >> 24, archetype.petalCountRange[0], archetype.petalCountRange[1])),
+                petalLength: mapHashToRange(hash >> 32, archetype.petalLengthRange[0], archetype.petalLengthRange[1]),
+                petalWidth: mapHashToRange(hash >> 40, archetype.petalWidthRange[0], archetype.petalWidthRange[1]),
+                stemHeight: mapHashToRange(hash >> 48, archetype.stemHeightRange[0], archetype.stemHeightRange[1]),
+                leafCount: Math.floor(mapHashToRange(hash >> 56, archetype.leafCountRange[0], archetype.leafCountRange[1])),
+                complexity: mapHashToRange(hash >> 64, archetype.complexityRange[0], archetype.complexityRange[1])
+            };
+
+            // Derive descriptive information
+            const descriptiveInfo = {
+                name: `${firstName}'s ${archetype.name} Bloom`,
+                summary: archetype.summary,
+                keywords: archetype.keywords
+            };
+
+            return { visualParams, descriptiveInfo };
+        }
+
+        // --- p5.js Sketch ---
+        /**
+         * This is the p5.js sketch for rendering the 3D generative bloom.
+         * It simulates the existing, perfectly functional p5.js code.
+         * It includes a basic Flower class, particle system, and interactive controls.
+         */
+        const sketch = (p) => {
+            let flower;
+            let particles = [];
+            let rotationAngle = 0;
+
+            // Flower class (simplified for demonstration)
+            class Flower {
+                constructor(params) {
+                    this.setParams(params);
+                    this.bloomTime = 0; // For growth animation
+                }
+
+                setParams(params) {
+                    this.hue = params.hue || 0;
+                    this.saturation = params.saturation || 0;
+                    this.brightness = params.brightness || 0;
+                    this.petalCount = params.petalCount || 12;
+                    this.petalLength = params.petalLength || 1.0;
+                    this.petalWidth = params.petalWidth || 0.5;
+                    this.stemHeight = params.stemHeight || 1.0;
+                    this.leafCount = params.leafCount || 2;
+                    this.complexity = params.complexity || 0.5;
+                    this.baseColor = p.color(this.hue, this.saturation, this.brightness);
+                    this.stemColor = p.color(100, 80, 50); // Greenish-brown
+                }
+
+                animate() {
+                    // Simple growth animation
+                    this.bloomTime = p.min(this.bloomTime + 0.01, 1);
+
+                    // Subtle sway
+                    rotationAngle = p.sin(p.frameCount * 0.005) * 5; // degrees
+
+                    // Petal pulsating center effect
+                    if (p.frameCount % 5 === 0 && this.bloomTime >= 1) {
+                        for (let i = 0; i < p.floor(this.petalCount * this.complexity * 0.5); i++) {
+                            particles.push(new Particle(p, 0, 0, 0, this.baseColor));
+                        }
+                    }
+                }
+
+                display() {
+                    p.push();
+                    p.rotateY(rotationAngle);
+                    p.rotateX(rotationAngle * 0.5);
+
+                    // Stem
+                    p.push();
+                    p.translate(0, p.lerp(100, 0, this.bloomTime), 0); // Start lower and move up
+                    p.rotateX(90);
+                    p.fill(this.stemColor);
+                    p.cylinder(this.petalWidth * 20 * this.bloomTime, this.stemHeight * 200 * this.bloomTime);
+                    p.pop();
+
+                    p.translate(0, -this.stemHeight * 100 * this.bloomTime, 0); // Move to top of stem
+
+                    // Petals
+                    for (let i = 0; i < this.petalCount; i++) {
+                        p.push();
+                        p.rotateY(p.map(i, 0, this.petalCount, 0, 360));
+                        p.rotateX(60 + p.sin(p.frameCount * 0.02 + i) * 5 * this.complexity); // Petal bending
+                        p.translate(0, 0, p.map(this.bloomTime, 0, 1, 0, this.petalLength * 50)); // Petal growth outwards
+                        p.rotateX(p.map(this.bloomTime, 0, 1, 90, 0)); // Petal opening from closed
+
+                        p.fill(this.baseColor);
+                        p.specularMaterial(this.baseColor);
+                        p.shininess(50);
+
+                        // Simple petal shape (using a box or plane)
+                        p.box(this.petalWidth * 40, this.petalLength * 100 * this.bloomTime, 5);
+                        p.pop();
+                    }
+
+                    // Center of the flower
+                    p.fill(this.hue, this.saturation * 0.7, this.brightness * 0.5);
+                    p.sphere(this.petalWidth * 30 * this.bloomTime);
+
+                    p.pop();
+                }
+
+                displayParticles() {
+                    for (let i = particles.length - 1; i >= 0; i--) {
+                        particles[i].update();
+                        particles[i].display();
+                        if (particles[i].isFinished()) {
+                            particles.splice(i, 1);
+                        }
+                    }
+                }
+            }
+
+            // Particle class for bloom effect
+            class Particle {
+                constructor(p, x, y, z, baseColor) {
+                    this.p = p;
+                    this.pos = p.createVector(x, y, z);
+                    this.vel = p.p5.Vector.random3D();
+                    this.vel.mult(p.random(0.5, 2));
+                    this.acc = p.createVector(0, 0.05, 0); // Gravity effect
+                    this.lifespan = 255;
+                    this.color = baseColor;
+                }
+
+                update() {
+                    this.vel.add(this.acc);
+                    this.pos.add(this.vel);
+                    this.lifespan -= 5;
+                }
+
+                display() {
+                    this.p.push();
+                    this.p.noStroke();
+                    this.p.ambientMaterial(this.p.hue(this.color), this.p.saturation(this.color), this.p.brightness(this.color), this.lifespan);
+                    this.p.sphere(this.p.map(this.lifespan, 0, 255, 1, 8));
+                    this.p.pop();
+                }
+
+                isFinished() {
+                    return this.lifespan < 0;
+                }
+            }
+
+            p.setup = () => {
+                const container = document.getElementById('p5-canvas-container');
+                const canvas = p.createCanvas(container.offsetWidth, container.offsetHeight, p.WEBGL);
+                canvas.parent('p5-canvas-container'); // Attach canvas to the specific container
+                p.colorMode(p.HSB, 360, 100, 100, 255); // Use HSB for color generation
+                p.angleMode(p.DEGREES);
+
+                // Setup lighting
+                p.ambientLight(60, 60, 60);
+                p.pointLight(255, 255, 255, 0, 0, 400); // White light from front
+                p.directionalLight(200, 200, 200, -1, -1, 0); // Directional light
+
+                // Initial flower (placeholder)
+                flower = new Flower({
+                    hue: 200, saturation: 50, brightness: 80,
+                    petalCount: 15, petalLength: 1.0, petalWidth: 0.5,
+                    stemHeight: 1.2, leafCount: 4, complexity: 0.6
+                });
+
+                p.setFlower = (params) => {
+                    flower.setParams(params);
+                    flower.bloomTime = 0; // Reset bloom animation
+                    particles = []; // Clear existing particles
+                };
+            };
+
+            p.draw = () => {
+                p.background(15, 23, 42); // Slate-900 background
+                p.orbitControl(); // Allow user to rotate and zoom 3D scene
+
+                p.push();
+                p.scale(p.map(flower.bloomTime, 0, 1, 0.1, 1)); // Scale with bloom time
+                flower.display();
+                p.pop();
+
+                flower.animate();
+                flower.displayParticles();
+            };
+
+            p.windowResized = () => {
+                const container = document.getElementById('p5-canvas-container');
+                p.resizeCanvas(container.offsetWidth, container.offsetHeight);
+            };
+        };
+
+        // --- YouTube Player API Integration ---
+        function onYouTubeIframeAPIReady() {
+            youtubePlayer = new YT.Player('youtube-player-container', {
+                height: '0', // Make it invisible
+                width: '0',  // Make it invisible
+                videoId: YOUTUBE_VIDEO_ID,
+                playerVars: {
+                    'autoplay': 0, // Do not autoplay on load
+                    'controls': 0, // Hide controls
+                    'loop': 1, // Loop the video
+                    'playlist': YOUTUBE_VIDEO_ID // Required for looping
+                },
+                events: {
+                    'onReady': (event) => {
+                        console.log('YouTube Player Ready');
+                        // Music starts paused, user has to click button
+                    },
+                    'onStateChange': (event) => {
+                        // If video ends and loop is enabled, it will automatically restart
+                        if (event.data === YT.PlayerState.ENDED) {
+                            youtubePlayer.playVideo();
+                        }
+                    }
+                }
+            });
+        }
+
+        /**
+         * Toggles the ambient music playback.
+         */
+        function toggleMusic() {
+            if (youtubePlayer) {
+                if (isMusicPlaying) {
+                    youtubePlayer.pauseVideo();
+                    isMusicPlaying = false;
+                    document.getElementById('toggle-music-btn').classList.remove('bg-purple-700');
+                    document.getElementById('toggle-music-btn').classList.add('bg-purple-600');
+                } else {
+                    youtubePlayer.playVideo();
+                    isMusicPlaying = true;
+                    document.getElementById('toggle-music-btn').classList.remove('bg-purple-600');
+                    document.getElementById('toggle-music-btn').classList.add('bg-purple-700');
+                }
+            }
+        }
+
+        // --- DOM Elements and Event Handling ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstNameInput = document.getElementById('first-name-input');
+            const lastNameInput = document.getElementById('last-name-input');
+            const generateBtn = document.getElementById('generate-btn');
+            const nameError = document.getElementById('name-error');
+            const currentBloomDisplay = document.getElementById('current-bloom-display');
+            const p5CanvasContainer = document.getElementById('p5-canvas-container');
+            const bloomInfoPanel = document.getElementById('bloom-info');
+            const infoTitle = document.getElementById('info-title');
+            const infoSummary = document.getElementById('info-summary');
+            const infoKeywords = bloomInfoPanel.querySelector('.flex.flex-wrap.gap-2'); // Select the div for keywords
+            const closeInfoBtn = document.getElementById('close-info-btn');
+            const toggleMusicBtn = document.getElementById('toggle-music-btn');
+            const webglErrorDiv = document.getElementById('webgl-error');
+            const watermarkDiv = document.getElementById('watermark');
+
+            // Add fixed watermark
+            watermarkDiv.textContent = "Created by Dakota Rain Lock, powered by Holy Grail. A Dakota Rain Lock invention.";
+
+
+            // Initialize p5.js sketch
+            p5Instance = new p5(sketch);
+
+            /**
+             * Handles the generation of a new bloom based on user input.
+             */
+            const handleGenerateBloom = () => {
+                const firstName = firstNameInput.value.trim();
+                const lastName = lastNameInput.value.trim();
+
+                if (!firstName || !lastName) {
+                    nameError.classList.remove('hidden');
+                    currentBloomDisplay.textContent = "Please enter your full name!";
+                    return;
+                } else {
+                    nameError.classList.add('hidden');
+                }
+
+                currentBloomDisplay.textContent = `Generating bloom for ${firstName} ${lastName}...`;
+                bloomInfoPanel.classList.add('hidden'); // Hide info panel when regenerating
+
+                try {
+                    currentFlowerData = generateFlowerData(firstName, lastName);
+                    p5Instance.setFlower(currentFlowerData.visualParams);
+                    currentBloomDisplay.textContent = `${currentFlowerData.descriptiveInfo.name} is blooming!`;
+
+                    // Update info panel content
+                    infoTitle.textContent = currentFlowerData.descriptiveInfo.name;
+                    infoSummary.textContent = currentFlowerData.descriptiveInfo.summary;
+                    infoKeywords.innerHTML = ''; // Clear previous keywords
+                    currentFlowerData.descriptiveInfo.keywords.forEach(keyword => {
+                        const span = document.createElement('span');
+                        span.className = 'bg-indigo-500 text-white text-xs px-2 py-1 rounded-full';
+                        span.textContent = keyword;
+                        infoKeywords.appendChild(span);
+                    });
+
+                } catch (error) {
+                    console.error("Error generating bloom:", error);
+                    currentBloomDisplay.textContent = "Error blooming! Try again.";
+                    nameError.textContent = "An error occurred during bloom generation. Please try again.";
+                    nameError.classList.remove('hidden');
+                }
+            };
+
+            // Event Listeners
+            generateBtn.addEventListener('click', handleGenerateBloom);
+
+            // Allow generating bloom on Enter key in input fields
+            firstNameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleGenerateBloom();
+            });
+            lastNameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleGenerateBloom();
+            });
+
+            // Toggle bloom info panel on canvas click
+            p5CanvasContainer.addEventListener('click', () => {
+                if (currentFlowerData) { // Only show if a flower has been generated
+                    bloomInfoPanel.classList.toggle('hidden');
+                }
+            });
+
+            // Close button for info panel
+            closeInfoBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent click from propagating to canvas
+                bloomInfoPanel.classList.add('hidden');
+            });
+
+            // Music toggle button
+            toggleMusicBtn.addEventListener('click', toggleMusic);
+
+            // Initial bloom generation (e.g., a default "Guest" bloom)
+            firstNameInput.value = "Guest";
+            lastNameInput.value = "User";
+            handleGenerateBloom(); // Generate initial bloom on load
+
+            // --- Robust WebGL Error Handling ---
+            // This is crucial for preventing a blank canvas or crashes on unsupported devices.
+            window.addEventListener('error', (event) => {
+                const errorMessage = event.message;
+                // Common WebGL error patterns
+                if (errorMessage.includes("WebGL") || errorMessage.includes("webgl") ||
+                    errorMessage.includes("GL_") || errorMessage.includes("Shader")) {
+                    console.error("Detected potential WebGL error:", errorMessage);
+                    webglErrorDiv.classList.remove('hidden'); // Show error message
+                    if (p5Instance) {
+                        try {
+                            p5Instance.remove(); // Attempt to remove the p5.js canvas to prevent further errors
+                        } catch (e) {
+                            console.warn("Could not remove p5 instance:", e);
+                        }
+                    }
+                    p5CanvasContainer.innerHTML = ''; // Clear the container
+                    p5CanvasContainer.appendChild(webglErrorDiv); // Re-add the error div to ensure it's visible
+                    p5CanvasContainer.classList.add('justify-center', 'items-center'); // Center the error message
+                }
+            });
+        });
+    </script>
+
+    <div style="position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,0.7);color:white;padding:5px 10px;border-radius:5px;font-family:sans-serif;font-size:12px">
+        Created by Dakota Rain Lock, powered by Holy Grail. A Dakota Rain Lock Invention.
+    </div>
+    
+</body>
+</html>
